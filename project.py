@@ -52,6 +52,28 @@ for img,label in dataset:
 
 
 # %% use folder name to seperate the dataset
-
+from torchvision.datasets import ImageFolder 
+dataset = ImageFolder('./data/dogcat_2/')
+dataset.class_to_idx
 
 # %%
+dataset.imgs
+# %% add transform to ImageFolder loader 
+transform = T.Compose([
+    T.RandomResizedCrop(224),
+    T.RandomHorizontalFlip(),
+    T.ToTensor(),
+    T.Normalize(mean=[0.4,0.4,0.4], std=[0.2,0.2,0.2])
+])
+dataset = ImageFolder('./data/dogcat_2/', transform = transform)
+
+# %% test new ImageFolder loader
+dataset[0][0].size()
+
+# %% 每张图都会不一样， 因为transform的原因
+to_pil = T.ToPILImage()
+to_pil(dataset[0][0]*0.2 + 0.4)
+
+# %% dataLoader 作用于 dataset
+from torch.utils.data import DataLoader
+
