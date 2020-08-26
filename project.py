@@ -76,4 +76,42 @@ to_pil(dataset[0][0]*0.2 + 0.4)
 
 # %% dataLoader 作用于 dataset
 from torch.utils.data import DataLoader
+dataloader = DataLoader(dataset, batch_size = 3, 
+shuffle=True, num_workers = 0, drop_last=False)
 
+#%% iterate 
+dataiter = iter(dataloader)
+img, label = next(dataiter)
+img.size()
+
+# %% 如果有一张图片损坏的情况
+# 继承以前的class
+class NewDogCat(DogCat):
+    def __getitem__(self, index):
+        try:
+            return super().__getitem__(index)
+        except:
+            return None, None
+from torch.utils.data.dataloader import default_collate
+def my_collate_fn(batch):
+    batch = list(filter(lambda x:x[0] is not None, batch))
+    if len(batch) == 0: return t.Tensor()
+    return default_collate(batch)
+dataset = NewDogCat('./data/dogcat_wrong/', transforms = transform)
+dataset[0]    
+# %%
+dataloader = DataLoader(dataset, 2, collate_fn = my_collate_fn,num_workers = 0, shuffle = True)
+# %%
+for batch_data, batch_label in dataloader:
+    print(batch_data.size(),batch_label.size())
+
+# %% torchvision 
+from torchvision import models
+from torch import nn 
+resnet34 = models.squeezenet1_1(pretrained=True, num_classes=1000)
+resnet34.fc = nn.Linear(512,10)
+# %%
+from torchvision import datasets
+dataset = datasets.MNIST('data/', download=True,
+train=False, transform=transform)
+# %%
