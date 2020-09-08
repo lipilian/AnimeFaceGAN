@@ -3,7 +3,8 @@ import requests
 from bs4 import BeautifulSoup
 import os
 import traceback
-from tqdm import tqdm
+from tqdm import tqdm 
+
 #%% create function to download image
 def download(url, filename):
     if os.path.exists(filename):
@@ -31,9 +32,9 @@ if not os.path.exists('imgs'):
     os.makedirs('imgs')
 
 # %%
-start = 601
-end = 800
-for i in tqdm(range(start, end + 1)):
+start = 7992
+end = 8000
+for i in tqdm(range(start, end + 1), position=0):
     url = 'http://konachan.net/post?page=%d&tags=' % i
     html = requests.get(url).text
     soup = BeautifulSoup(html, 'html.parser')
@@ -41,5 +42,6 @@ for i in tqdm(range(start, end + 1)):
         target_url =  img['src']
         filename = os.path.join('imgs', target_url.split('/')[-1])
         download(target_url, filename)
-        
 # %%
+
+# %

@@ -1,3 +1,5 @@
 {
-    "python.linting.enabled": false
+    "python.linting.enabled": false,
+    "python.pythonPath": "C:\\Users\\liuhong2\\AppData\\Local\\Continuum\\anaconda3\\python.exe",
+    "git.ignoreLimitWarning": true
 }
