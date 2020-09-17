@@ -158,7 +158,12 @@ if opt.Vis:
 netG, netD = Generator(opt), Discriminator(opt)
 # load pretrained check points
 map_location = lambda storage, loc: storage
-netDCheckPath = 
+netDCheckPath = glob.glob(opt.checkpointsPath + 'netD*')
+netGCheckPath = glob.glob(opt.checkpointsPath + 'netG*')
+if len(netDCheckPath) != 0:
+    opt.NetDPath = netDCheckPath[-1]
+if len(netGCheckPath) != 0:
+    opt.NetGPath = netGCheckPath[-1]
 if opt.NetDPath:
     netD.load_state_dict(t.load(opt.NetDPath, map_location=map_location))
 if opt.NetGPath:
