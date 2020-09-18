@@ -55,7 +55,7 @@ class Config(object):
     checkpointsPath ='./checkpoints/'
 
     # test without training 
-    GenImg = './result.png'
+    GenImg = './assets/result.png'
     # pick best 64 imgs from 512 imgs
     GenNum = 64
     GenSearch = 512 
@@ -184,64 +184,93 @@ fix_noises = t.randn(opt.BatchSize, opt.Nz, 1, 1).to(device)
 errorGMeter = AverageValueMeter()
 errorDMeter = AverageValueMeter()
 # %% start training
-print('start training ......')
-for epoch in range(opt.MaxEpochs):
-    for i, (img,_) in tqdm.tqdm(enumerate(dataloader)):
-        realImg = img.to(device) # transfer 256,3,96,96 image to CUDA
-        ############################
-        # (1) Update D network: maximize log(D(x)) + log(1 - D(G(z)))
-        ###########################
-        if i % opt.DEvery == 0: # train discriminator
-            #maximize log(D(x)) + log(1 - D(G(z)))
-            optimizerD.zero_grad()
-            # train all real image with true label
-            output = netD(realImg).view(-1)
-            errorDReal = criterion(output, TrueLabel)
-            errorDReal.backward()
-            # train all fake image with fake label
-            noises = t.randn(opt.BatchSize, opt.Nz, 1, 1, device = device)
-            fakeImg = netG(noises) 
-            output = netD(fakeImg.detach()).view(-1)# turn off gradient tracking to avoid generator training
-            errorDFake = criterion(output, FakeLabel)
-            errorDFake.backward()
-            # update all weight
-            optimizerD.step()
-            # collect all errors
-            errorD = errorDReal + errorDFake
-            errorDMeter.add(errorD.item())
-        ############################
-        # (2) Update G network: maximize log(D(G(z)))
-        ###########################
-        if i % opt.GEvery == 0: # train generator 
-            optimizerG.zero_grad()
-            if i % opt.DEvery != 0: # if discriminator is not trained within this batch
+def train():
+    print('start training ......')
+    for epoch in range(opt.MaxEpochs):
+        for i, (img,_) in tqdm.tqdm(enumerate(dataloader)):
+            realImg = img.to(device) # transfer 256,3,96,96 image to CUDA
+            ############################
+            # (1) Update D network: maximize log(D(x)) + log(1 - D(G(z)))
+            ###########################
+            if i % opt.DEvery == 0: # train discriminator
+                #maximize log(D(x)) + log(1 - D(G(z)))
+                optimizerD.zero_grad()
+                # train all real image with true label
+                output = netD(realImg).view(-1)
+                errorDReal = criterion(output, TrueLabel)
+                errorDReal.backward()
+                # train all fake image with fake label
                 noises = t.randn(opt.BatchSize, opt.Nz, 1, 1, device = device)
-                fakeImg = netG(noises)
-            # if discriminator got trained, we already have trained fakeImg
-            output = netD(fakeImg).view(-1)
-            errorG = criterion(output, TrueLabel)
-            errorG.backward()
-            optimizerG.step()
-            errorGMeter.add(errorG.item())
+                fakeImg = netG(noises) 
+                output = netD(fakeImg.detach()).view(-1)# turn off gradient tracking to avoid generator training
+                errorDFake = criterion(output, FakeLabel)
+                errorDFake.backward()
+                # update all weight
+                optimizerD.step()
+                # collect all errors
+                errorD = errorDReal + errorDFake
+                errorDMeter.add(errorD.item())
+            ############################
+            # (2) Update G network: maximize log(D(G(z)))
+            ###########################
+            if i % opt.GEvery == 0: # train generator 
+                optimizerG.zero_grad()
+                if i % opt.DEvery != 0: # if discriminator is not trained within this batch
+                    noises = t.randn(opt.BatchSize, opt.Nz, 1, 1, device = device)
+                    fakeImg = netG(noises)
+                # if discriminator got trained, we already have trained fakeImg
+                output = netD(fakeImg).view(-1)
+                errorG = criterion(output, TrueLabel)
+                errorG.backward()
+                optimizerG.step()
+                errorGMeter.add(errorG.item())
+            ############################
+            # (3) visualize with visdom
+            ###########################  
+            if opt.Vis and i % opt.plot_every == opt.plot_every - 1:
+                if os.path.exists(opt.DebugFile):
+                    ipdb.set_trace()
+                fixFakeImg = netG(fix_noises)
+                vis.images(fixFakeImg.detach().cpu().numpy()[:64] * 0.5 + 0.5, win = 'fixFakeImg')
+                vis.images(realImg.data.cpu().numpy()[:64] * 0.5 + 0.5, win = 'realImg')
+                vis.plot('ErrorGenerator', errorGMeter.value()[0])
+                vis.plot('ErrorDiscriminator', errorDMeter.value()[0])
         ############################
-        # (3) visualize with visdom
-        ###########################  
-        if opt.Vis and i % opt.plot_every == opt.plot_every - 1:
-            if os.path.exists(opt.DebugFile):
-                ipdb.set_trace()
-            fixFakeImg = netG(fix_noises)
-            vis.images(fixFakeImg.detach().cpu().numpy()[:64] * 0.5 + 0.5, win = 'fixFakeImg')
-            vis.images(realImg.data.cpu().numpy()[:64] * 0.5 + 0.5, win = 'realImg')
-            vis.plot('ErrorGenerator', errorGMeter.value()[0])
-            vis.plot('ErrorDiscriminator', errorDMeter.value()[0])
-    ############################
-    # (3) save training result
-    ###########################        
-    if (epoch + 1) % opt.SaveEvery == 0: 
-        tv.utils.save_image(fixFakeImg.data[:64], '%s/%05d.png' % (opt.SavePath, epoch), normalize=True, range = (-1,1))
-        t.save(netD.state_dict(), './checkpoints/netD_%05d.pth' % epoch) 
-        t.save(netG.state_dict(), './checkpoints/netG_%05d.pth' % epoch)      
-        errorDMeter.reset()
-        errorGMeter.reset()
+        # (3) save training result
+        ###########################        
+        if (epoch + 1) % opt.SaveEvery == 0: 
+            tv.utils.save_image(fixFakeImg.data[:64], '%s/%05d.png' % (opt.SavePath, epoch), normalize=True, range = (-1,1))
+            t.save(netD.state_dict(), './checkpoints/netD_%05d.pth' % epoch) 
+            t.save(netG.state_dict(), './checkpoints/netG_%05d.pth' % epoch)      
+            errorDMeter.reset()
+            errorGMeter.reset()
+# %% Generate best 64 images
+with t.no_grad():
+    a = 1
+    netG = Generator(opt).eval()
+    netD = Discriminator(opt).eval()
+    noises = t.randn(opt.GenSearch, opt.Nz, 1, 1).normal_(opt.GenMean, opt.GenStd).to(device)
+    map_location = lambda storage, loc: storage
+    netDCheckPath = glob.glob(opt.checkpointsPath + 'netD*')
+    netGCheckPath = glob.glob(opt.checkpointsPath + 'netG*')
+    if len(netDCheckPath) != 0:
+        opt.NetDPath = netDCheckPath[-1]
+    if len(netGCheckPath) != 0:
+        opt.NetGPath = netGCheckPath[-1]
+    if opt.NetDPath:
+        netD.load_state_dict(t.load(opt.NetDPath, map_location=map_location))
+    if opt.NetGPath:
+        netG.load_state_dict(t.load(opt.NetGPath, map_location=map_location))
+    netG.to(device)
+    netD.to(device)
+    # generate fake image and find top 64 
+    fakeImg = netG(noises)
+    scores = netD(fakeImg).detach()
+    indexes = scores.topk(opt.GenNum)[1]
+    result = []
+    for i in indexes:
+        result.append(fakeImg[i])
+    tv.utils.save_image(t.stack(result), opt.GenImg, normalize = True, range = (-1, 1))
 
+    
 # %%

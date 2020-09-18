@@ -31,10 +31,9 @@ Progress during training (epochs 0 to 400):
 
 ![progress_gif](assets/DCGAN.gif)
 
-64x64 Generated samples after 20 epochs. Training time: ~5 hours on x2 GTX 1080-Ti GPUs
+96x96 Generated samples after 400 epochs. Training time: ~10 hours on one GTX 1080 GPUs
 
-
-![96x96](assets/generated_sample_96x96(epoch45).png)
+![96x96](assets/result.png)
 
 
 
