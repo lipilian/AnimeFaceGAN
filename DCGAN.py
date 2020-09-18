@@ -170,8 +170,9 @@ if opt.NetGPath:
     netG.load_state_dict(t.load(opt.NetGPath, map_location=map_location))
 netG.to(device)
 netD.to(device)
-netG.apply(weights_init);
-netD.apply(weights_init);
+if not opt.NetDPath:
+    netG.apply(weights_init);
+    netD.apply(weights_init);
 # %% define lost and optimizer
 criterion = t.nn.BCELoss().to(device)
 optimizerG = t.optim.Adam(netG.parameters(), lr = opt.LRG, betas=(opt.Beta, 0.999))
@@ -242,6 +243,5 @@ for epoch in range(opt.MaxEpochs):
         t.save(netG.state_dict(), './checkpoints/netG_%05d.pth' % epoch)      
         errorDMeter.reset()
         errorGMeter.reset()
-# %%
-t.save(netD.state_dict(), './checkpoints/netD_%05d.pth' % 9) 
+
 # %%
