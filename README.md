@@ -36,14 +36,5 @@ Progress during training (epochs 0 to 400):
 
 ![96x96](assets/generated_sample_96x96(epoch45).png)
 
-## [Tensorboard](https://www.tensorflow.org/tensorboard)
-
-A lot of work was put into the checkpointing system and logging, as well as writing to tensorboard.
-
-Histograms of each layer and its gradient
-
-
-
-## [Certificate to *Udacity Connect Deep Learning NanoDegree*](https://graduation.udacity.com/confirm/CTG23EKQ)
 
 
